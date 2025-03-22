@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0" />
+  <title>Arena Breakout | Discord Appeal System</title>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+  />
+  <style>
+    /*****************************************************************
+     * ORANGE-NEON FUTURISTIC THEME
+     *****************************************************************/
+    :root {
+      --primary: #ff8a00;         /* Vibrant orange */
+      --primary-dark: #d97800;    /* Darker orange for hover states */
+      --background: #0c0c0c;      /* Nearly black background */
+      --secondary: #1a1a1a;       /* Dark secondary background */
+      --card-bg: #202020;         /* Card background */
+      --input-bg: #2a2a2a;        /* Input backgrounds */
+      --text: #ffffff;            /* Main text color */
+      --text-muted: #b2b2b2;      /* Muted text color */
+      --danger: #ff4e4e;          /* Red for errors */
+      --success: #ffa733;         /* Lighter orange/gold for success */
+      --warning: #ffd63d;         /* Yellowish for warnings */
+      --animation-speed: 0.4s;    /* Speed for transitions/animations */
+      --radius: 10px;             /* Border radius for cards/buttons */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--text);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+      transition: color var(--animation-speed);
+    }
+    a:hover {
+      color: var(--primary-dark);
+    }
+
+    /*****************************************************************
+     * BACKGROUND ANIMATION
+     *****************************************************************/
+    .background-animation {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    .background-animation::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(
+        circle,
+        rgba(255, 138, 0, 0.15) 0%,
+        rgba(12, 12, 12, 0) 40%
+      );
+      animation: rotate1 20s linear infinite;
+    }
+    .background-animation::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(
+        circle,
+        rgba(255, 138, 0, 0.1) 0%,
+        rgba(12, 12, 12, 0) 50%
+      );
+      animation: rotate2 25s linear infinite reverse;
+    }
+    @keyframes rotate1 {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes rotate2 {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(-360deg); }
+    }
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 138, 0, 0.5);
+      animation: floatUp 6s infinite ease-in-out;
+      opacity: 0;
+    }
+    @keyframes floatUp {
+      0% {
+        transform: translateY(0) translateX(0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.5;
+      }
+      90% {
+        opacity: 0.1;
+      }
+      100% {
+        transform: translateY(-120vh) translateX(30px);
+        opacity: 0;
+      }
+    }
+
+    /*****************************************************************
+     * HEADER
+     *****************************************************************/
+    header {
+      text-align: center;
+      padding: 2rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background-color: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(8px);
+    }
+    .logo {
+      font-size: 2.2rem;
+      font-weight: 900;
+      background: linear-gradient(90deg, #ff8a00, #ffbf40);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -1px;
+      text-shadow: 0 0 8px rgba(255, 138, 0, 0.4);
+    }
+    header p {
+      margin-top: 0.35rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /*****************************************************************
+     * MAIN CONTAINER & CARD STYLES
+     *****************************************************************/
+    .container {
+      max-width: 750px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      animation: fadeIn var(--animation-speed) ease-in-out;
+    }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card {
+      position: relative;
+      background-color: var(--card-bg);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3),
+                  0 0 6px rgba(255, 138, 0, 0.08) inset;
+      overflow: hidden;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(
+        circle at top left,
+        rgba(255, 138, 0, 0.06),
+        transparent 60%
+      );
+    }
+    .card-header {
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 1rem;
+    }
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text);
+      text-shadow: 0 0 3px rgba(255, 138, 0, 0.3);
+    }
+    .card-title i {
+      color: var(--primary);
+    }
+    .card-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+    .card-body {
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /*****************************************************************
+     * BUTTONS
+     *****************************************************************/
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      transition: all var(--animation-speed) ease;
+      outline: none;
+      box-shadow: 0 0 10px rgba(255, 138, 0, 0.2);
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(255, 138, 0, 0.3);
+    }
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #000;
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+    .btn-discord {
+      background-color: var(--primary);
+      color: #000;
+    }
+    .btn-discord:hover {
+      background-color: var(--primary-dark);
+    }
+    .btn-block {
+      width: 100%;
+    }
+
+    /*****************************************************************
+     * USER PROFILE
+     *****************************************************************/
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .user-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: var(--secondary);
+      overflow: hidden;
+      border: 2px solid var(--primary);
+      flex-shrink: 0;
+      box-shadow: 0 0 6px rgba(255, 138, 0, 0.3);
+    }
+    .user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .user-info {
+      flex: 1;
+    }
+    .user-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      text-shadow: 0 0 2px rgba(255, 138, 0, 0.3);
+    }
+    .user-tag {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 0.25rem;
+    }
+
+    /*****************************************************************
+     * FORM ELEMENTS
+     *****************************************************************/
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      font-size: 0.95rem;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background-color: var(--input-bg);
+      color: var(--text);
+      transition: border-color var(--animation-speed);
+    }
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(255, 138, 0, 0.15);
+    }
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .checkbox-group input[type='checkbox'] {
+      width: auto;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    /*****************************************************************
+     * STATUS / TIMELINE
+     *****************************************************************/
+    .status-card {
+      position: relative;
+      padding: 1rem;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      box-shadow: inset 0 0 4px rgba(255, 138, 0, 0.1);
+    }
+    .status-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 138, 0, 0.07), transparent);
+      pointer-events: none;
+    }
+    .status-success {
+      background-color: rgba(255, 167, 51, 0.1);
+      border-left: 4px solid var(--success);
+    }
+    .status-warning {
+      background-color: rgba(255, 214, 61, 0.1);
+      border-left: 4px solid var(--warning);
+    }
+    .status-danger {
+      background-color: rgba(255, 78, 78, 0.1);
+      border-left: 4px solid var(--danger);
+    }
+    .status-info {
+      background-color: rgba(255, 138, 0, 0.08);
+      border-left: 4px solid var(--primary);
+    }
+    .status-card i {
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+    .status-card-content {
+      flex: 1;
+    }
+    .status-card-title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: var(--text);
+    }
+    .status-card-text {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      line-height: 1.3;
+    }
+
+    .timeline {
+      position: relative;
+      margin: 2rem 0;
+      padding-left: 2rem;
+      border-left: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+    .timeline-dot {
+      position: absolute;
+      left: -9px;
+      top: 0.3rem;
+      width: 16px;
+      height: 16px;
+      background-color: var(--primary);
+      border: 3px solid var(--card-bg);
+      border-radius: 50%;
+    }
+    .timeline-content {
+      background-color: rgba(255, 255, 255, 0.03);
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    .timeline-date {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+    .timeline-title {
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text);
+    }
+    .timeline-text {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /*****************************************************************
+     * TOAST NOTIFICATIONS
+     *****************************************************************/
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+    .toast {
+      background-color: var(--card-bg);
+      color: var(--text);
+      padding: 1rem;
+      border-radius: 6px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: slideIn 0.3s ease forwards;
+      border-left: 4px solid var(--primary);
+      max-width: 350px;
+      position: relative;
+      overflow: hidden;
+    }
+    .toast::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, rgba(255, 138, 0, 0.05), transparent);
+    }
+    .toast.error {
+      border-left-color: var(--danger);
+    }
+    .toast.success {
+      border-left-color: var(--success);
+    }
+    .toast.warning {
+      border-left-color: var(--warning);
+    }
+    .toast-icon {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    .toast-content {
+      flex: 1;
+    }
+    .toast-title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .toast-message {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .toast-close {
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- BACKGROUND ANIMATION -->
+  <div class="background-animation"></div>
+
+  <header>
+    <h1 class="logo">ARENA BREAKOUT</h1>
+    <p>Discord Ban &amp; Mute Appeal System &ndash; Orange Neon Edition</p>
+  </header>
+
+  <div class="container">
+    <!-- ============ LOGIN CARD ============ -->
+    <div class="card" id="login-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fas fa-right-to-bracket"></i> Discord Authentication
+        </h2>
+        <p class="card-subtitle">
+          Please log in with your Discord account to continue
+        </p>
+      </div>
+      <div class="card-body">
+        <p style="margin-bottom: 1.5rem;">
+          To submit or check the status of your appeal, you must authorize
+          with your Discord account. This helps us confirm your identity.
+        </p>
+        <button
+          id="discord-login-btn"
+          class="btn btn-discord btn-block"
+        >
+          <i class="fab fa-discord"></i> Login with Discord
+        </button>
+      </div>
+    </div>
+    <!-- ============ /LOGIN CARD ============ -->
+
+    <!-- ============ USER INFO CARD ============ -->
+    <div class="card hidden" id="user-info-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fas fa-user"></i> Account Information
+        </h2>
+        <p class="card-subtitle">Your Discord details</p>
+      </div>
+      <div class="card-body">
+        <div class="user-profile">
+          <div class="user-avatar">
+            <img id="user-avatar" src="" alt="Discord Avatar" />
+          </div>
+          <div class="user-info">
+            <div class="user-name" id="user-name"></div>
+            <div class="user-tag" id="user-tag"></div>
+          </div>
+        </div>
+        <button
+          id="logout-btn"
+          class="btn btn-primary"
+          style="background-color: var(--danger);"
+        >
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+        <!-- View My Appeals button will be injected here -->
+      </div>
+    </div>
+    <!-- ============ /USER INFO CARD ============ -->
+
+    <!-- ============ APPEAL FORM CARD ============ -->
+    <div class="card hidden" id="appeal-form-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fas fa-file-alt"></i> Submit Appeal
+        </h2>
+        <p class="card-subtitle">
+          Provide the details about your punishment
+        </p>
+      </div>
+      <div class="card-body">
+        <form id="appeal-form">
+          <div class="form-group">
+            <label for="punishmentType">Were you Muted or Banned?</label>
+            <select id="punishmentType" name="punishmentType" required>
+              <option value="">-- Select --</option>
+              <option value="Muted">Muted</option>
+              <option value="Banned">Banned</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="punishmentReason">Reason for the punishment</label>
+            <textarea
+              id="punishmentReason"
+              name="punishmentReason"
+              required
+              placeholder="What caused your ban/mute?"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="appealReason">Why should it be revoked?</label>
+            <textarea
+              id="appealReason"
+              name="appealReason"
+              required
+              placeholder="Explain why your punishment should be reconsidered."
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="additionalInfo">
+              Additional information (optional)
+            </label>
+            <textarea
+              id="additionalInfo"
+              name="additionalInfo"
+              placeholder="Any extra info you want to share..."
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <div class="checkbox-group">
+              <input
+                type="checkbox"
+                id="confirmation"
+                name="confirmation"
+                required
+              />
+              <label for="confirmation">
+                I confirm all information is true.
+              </label>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            id="submit-appeal-btn"
+            class="btn btn-primary btn-block"
+          >
+            <i class="fas fa-paper-plane"></i> Submit Appeal
+          </button>
+        </form>
+      </div>
+    </div>
+    <!-- ============ /APPEAL FORM CARD ============ -->
+
+    <!-- ============ APPEAL STATUS CARD ============ -->
+    <div class="card hidden" id="appeal-status-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fas fa-hourglass-half"></i> Appeal Status
+        </h2>
+        <p class="card-subtitle">Current status of your appeal</p>
+      </div>
+      <div class="card-body" id="appeal-status-body">
+        <!-- Dynamically filled -->
+      </div>
+    </div>
+    <!-- ============ /APPEAL STATUS CARD ============ -->
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script>
+    /********************************************************
+     * GLOBAL SELECTORS
+     ********************************************************/
+    const loginCard = document.getElementById("login-card");
+    const userInfoCard = document.getElementById("user-info-card");
+    const appealFormCard = document.getElementById("appeal-form-card");
+    const appealStatusCard = document.getElementById("appeal-status-card");
+    const appealStatusBody = document.getElementById("appeal-status-body");
+
+    const discordLoginBtn = document.getElementById("discord-login-btn");
+    const logoutBtn = document.getElementById("logout-btn");
+    const userAvatar = document.getElementById("user-avatar");
+    const userName = document.getElementById("user-name");
+    const userTag = document.getElementById("user-tag");
+    const appealForm = document.getElementById("appeal-form");
+
+    /********************************************************
+     * CREATE BACKGROUND PARTICLES
+     ********************************************************/
+    function createParticles() {
+      const bgAnimation = document.querySelector(".background-animation");
+      for (let i = 0; i < 40; i++) {
+        const particle = document.createElement("div");
+        particle.classList.add("particle");
+        const size = Math.random() * 7 + 3 + "px";
+        const posX = Math.random() * 100 + "vw";
+        const delay = Math.random() * 6 + "s";
+        const duration = Math.random() * 7 + 7 + "s";
+
+        particle.style.width = size;
+        particle.style.height = size;
+        particle.style.left = posX;
+        particle.style.animationDelay = delay;
+        particle.style.animationDuration = duration;
+        bgAnimation.appendChild(particle);
+      }
+    }
+
+    /********************************************************
+     * TOAST NOTIFICATIONS
+     ********************************************************/
+    function showToast(type, title, message, duration = 4000) {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+
+      let iconClass = "fas fa-info-circle";
+      if (type === "success") iconClass = "fas fa-check-circle";
+      if (type === "error") iconClass = "fas fa-exclamation-circle";
+      if (type === "warning") iconClass = "fas fa-exclamation-triangle";
+
+      toast.innerHTML = `
+        <div class="toast-icon"><i class="${iconClass}"></i></div>
+        <div class="toast-content">
+          <div class="toast-title">${title}</div>
+          <div class="toast-message">${message}</div>
+        </div>
+        <div class="toast-close">
+          <i class="fas fa-times"></i>
+        </div>
+      `;
+      container.appendChild(toast);
+
+      // Close on click
+      toast.querySelector(".toast-close").addEventListener("click", () => {
+        toast.style.animation = "slideOut 0.3s ease forwards";
+        setTimeout(() => toast.remove(), 300);
+      });
+
+      // Auto-remove
+      setTimeout(() => {
+        if (toast.parentNode === container) {
+          toast.style.animation = "slideOut 0.3s ease forwards";
+          setTimeout(() => {
+            if (toast.parentNode === container) {
+              toast.remove();
+            }
+          }, 300);
+        }
+      }, duration);
+    }
+
+    /********************************************************
+     * DISCORD LOGIN
+     ********************************************************/
+    function onDiscordLogin() {
+      // Redirect to your Node server's Discord OAuth
+      window.location.href = "https://b39f6589-3366-49d0-8739-bf27b25084ff-00-12t1w6i14qb6m.sisko.replit.dev/auth/discord/callback";
+    }
+
+    /********************************************************
+     * LOGOUT
+     ********************************************************/
+    async function onLogout() {
+      try {
+        await fetch("/api/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+        showToast("info", "Logged Out", "You have been logged out.");
+        checkAuthState();
+      } catch (err) {
+        console.error(err);
+        showToast("error", "Logout Failed", err.message);
+      }
+    }
+
+    /********************************************************
+     * CHECK AUTH STATE
+     ********************************************************/
+    async function checkAuthState() {
+      try {
+        const res = await fetch("/api/me", { credentials: "include" });
+        if (!res.ok) throw new Error("Not logged in");
+        const user = await res.json();
+
+        // User is logged in
+        loginCard.classList.add("hidden");
+        userInfoCard.classList.remove("hidden");
+        userAvatar.src = user.avatarUrl || "";
+        userName.textContent = user.username;
+        userTag.textContent = `#${user.discriminator} (ID: ${user.id})`;
+
+        // Show the form (by default)
+        appealFormCard.classList.remove("hidden");
+        appealStatusCard.classList.add("hidden");
+      } catch (err) {
+        // Not logged in
+        loginCard.classList.remove("hidden");
+        userInfoCard.classList.add("hidden");
+        appealFormCard.classList.add("hidden");
+        appealStatusCard.classList.add("hidden");
+      }
+    }
+
+    /********************************************************
+     * SUBMIT APPEAL
+     ********************************************************/
+    async function onSubmitAppeal(e) {
+      e.preventDefault();
+      const punishmentType = e.target.punishmentType.value;
+      const punishmentReason = e.target.punishmentReason.value.trim();
+      const appealReason = e.target.appealReason.value.trim();
+      const additionalInfo = e.target.additionalInfo.value.trim();
+
+      try {
+        const res = await fetch("/api/submit-appeal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            punishmentType,
+            punishmentReason,
+            appealReason,
+            additionalInfo,
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || "Submission failed");
+        }
+
+        showToast("success", "Appeal Submitted", "We will review your case soon.");
+
+        // Now show "Pending" status in place of the form
+        toggleMyAppeals(true); // true = force show My Appeals (fetched)
+      } catch (err) {
+        console.error(err);
+        showToast("error", "Error", err.message);
+      }
+    }
+
+    /********************************************************
+     * SHOW APPEAL STATUS
+     ********************************************************/
+    function showAppealStatus(appeal) {
+      // Hide the form
+      appealFormCard.classList.add("hidden");
+      appealStatusCard.classList.remove("hidden");
+
+      let statusMsg = "";
+      if (appeal.status === "Pending") {
+        statusMsg = `
+          <div class="status-card status-warning">
+            <i class="fas fa-hourglass-half"></i>
+            <div class="status-card-content">
+              <div class="status-card-title">Pending Review</div>
+              <div class="status-card-text">
+                Your appeal was submitted on
+                <strong>${new Date(appeal.dateCreated).toLocaleString()}</strong>.
+                Our team typically responds within a few days.
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (appeal.status === "Accepted") {
+        statusMsg = `
+          <div class="status-card status-success">
+            <i class="fas fa-check-circle"></i>
+            <div class="status-card-content">
+              <div class="status-card-title">Appeal Accepted</div>
+              <div class="status-card-text">
+                Good news! Your punishment has been lifted.
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (appeal.status === "Rejected") {
+        statusMsg = `
+          <div class="status-card status-danger">
+            <i class="fas fa-times-circle"></i>
+            <div class="status-card-content">
+              <div class="status-card-title">Appeal Rejected</div>
+              <div class="status-card-text">
+                Unfortunately, your appeal was rejected.
+                You may re-appeal 7 days after the original submission date.
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      const timeline = `
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">
+                ${new Date(appeal.dateCreated).toLocaleDateString()}
+              </div>
+              <div class="timeline-title">
+                <i class="fas fa-user-clock"></i> Appeal Created
+              </div>
+              <div class="timeline-text">
+                Your appeal is currently <strong>${appeal.status}</strong>.
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      appealStatusBody.innerHTML = statusMsg + timeline;
+    }
+
+    /********************************************************
+     * EXTRA: "VIEW MY APPEALS" FUNCTIONALITY
+     * This will replace the Appeal Form with the "My Appeals" list.
+     ********************************************************/
+    let myAppealsCard;
+    let viewMyAppealsBtn;
+    let formContainerBackup = null; // to store a reference for toggling back
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Insert a new button inside the User Info card (if not already there)
+      const userInfoCardBody = document.querySelector('#user-info-card .card-body');
+      if (userInfoCardBody) {
+        viewMyAppealsBtn = document.createElement('button');
+        viewMyAppealsBtn.textContent = 'View My Appeals';
+        viewMyAppealsBtn.className = 'btn btn-primary';
+        viewMyAppealsBtn.style.marginLeft = '0.5rem';
+        viewMyAppealsBtn.addEventListener('click', toggleMyAppeals);
+        userInfoCardBody.appendChild(viewMyAppealsBtn);
+      }
+
+      // Backup the Appeal Form Card so we can toggle back
+      formContainerBackup = document.getElementById('appeal-form-card').cloneNode(true);
+
+      // Create a new card for My Appeals (initially hidden)
+      myAppealsCard = document.createElement('div');
+      myAppealsCard.className = 'card hidden';
+      myAppealsCard.id = 'my-appeals-card';
+      myAppealsCard.innerHTML = `
+        <div class="card-header">
+          <h2 class="card-title">
+            <i class="fas fa-list"></i> My Appeals
+          </h2>
+          <p class="card-subtitle">All your submitted appeals</p>
+        </div>
+        <div class="card-body" id="my-appeals-body">
+          <p>Loading your appeals...</p>
+        </div>
+      `;
+      // Insert this card in place of the Appeal Form Card
+      const parentContainer = document.querySelector('.container');
+      parentContainer.insertBefore(myAppealsCard, appealFormCard);
+    });
+
+    // Toggle function to switch between the Appeal Form and My Appeals list
+    async function toggleMyAppeals(forceShow = false) {
+      const appealFormEl = document.getElementById('appeal-form-card');
+      if (myAppealsCard.classList.contains('hidden') || forceShow) {
+        // Hide the form and show My Appeals
+        appealFormEl.classList.add('hidden');
+        myAppealsCard.classList.remove('hidden');
+        fetchMyAppeals();
+      } else {
+        // Hide My Appeals and show the form (restore backup)
+        myAppealsCard.classList.add('hidden');
+        appealFormEl.classList.remove('hidden');
+      }
+    }
+
+    // Fetch My Appeals from the server
+    async function fetchMyAppeals() {
+      const bodyEl = document.getElementById('my-appeals-body');
+      bodyEl.innerHTML = '<p>Loading your appeals...</p>';
+      try {
+        const res = await fetch('/api/my-appeals', { credentials: 'include' });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || 'Failed to fetch appeals');
+        }
+        if (!data.length) {
+          bodyEl.innerHTML = '<p>You have no appeals so far.</p>';
+          return;
+        }
+
+        let html = '<ul style="list-style: none; padding-left: 0;">';
+        data.forEach(ap => {
+          let statusColor = 'var(--warning)';
+          if (ap.status === 'Approved') statusColor = 'var(--success)';
+          if (ap.status === 'Rejected') statusColor = 'var(--danger)';
+          html += `
+            <li style="margin-bottom:1rem; padding:0.5rem; border:1px solid rgba(255,255,255,0.1); border-radius:6px;">
+              <strong>Appeal #${ap.appealId}</strong> <br/>
+              <span style="color:${statusColor}; font-weight:600;">${ap.status}</span> &mdash;
+              Mute/Ban: ${ap.muteOrBan} <br/>
+              Reason: ${ap.punishmentReason}<br/>
+              Submitted At: ${new Date(ap.timestamp).toLocaleString()}<br/>
+              ${ap.responseTimestamp ? `Responded At: ${new Date(ap.responseTimestamp).toLocaleString()}<br/>` : ''}
+            </li>
+          `;
+        });
+        html += '</ul>';
+        bodyEl.innerHTML = html;
+      } catch (err) {
+        console.error(err);
+        bodyEl.innerHTML = `<p style="color:red;">Failed to load appeals: ${err.message}</p>`;
+      }
+    }
+
+    /********************************************************
+     * EVENT LISTENERS
+     ********************************************************/
+    discordLoginBtn.addEventListener("click", onDiscordLogin);
+    logoutBtn.addEventListener("click", onLogout);
+    appealForm.addEventListener("submit", onSubmitAppeal);
+
+    /********************************************************
+     * INIT
+     ********************************************************/
+    createParticles();
+    checkAuthState();
+  </script>
+</body>
+</html>
