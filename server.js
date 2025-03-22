@@ -18,7 +18,7 @@ const {
 } = require('discord.js');
 
 // Mongoose models
-const Appeal = require('.Appeal.js');
+const Appeal = require('.appeal.js');
 const Report = require('./Report.js');
 
 const app = express();
