@@ -241,7 +241,7 @@ app.post('/api/submit-appeal', async (req, res) => {
 });
 
 // 8) Serve static front-end
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // 9) Start Express
 const PORT = process.env.PORT || 3000;
