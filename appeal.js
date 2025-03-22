@@ -1,4 +1,4 @@
-// models/Appeal.js
+/// models/Appeal.js
 const mongoose = require('mongoose');
 
 const AppealSchema = new mongoose.Schema({
