@@ -1,0 +1,23 @@
+{
+  "name": "arena-breakout-bot",
+  "version": "1.0.0",
+  "description": "Discord Ban & Mute Appeal System Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.11.0",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "mongoose": "^6.8.4",
+    "passport": "^0.6.0",
+    "passport-discord": "^0.1.4"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "author": "",
+  "license": "MIT"
+}
