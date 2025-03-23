@@ -545,15 +545,14 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      /* By default, they’ll be side-by-side with spacing */
     }
     @media (max-width: 600px) {
       .user-actions {
-        flex-direction: column;     /* Stack vertically on small screens */
+        flex-direction: column;
         align-items: stretch;
       }
       .user-actions .btn {
-        width: 100%;               /* Full width for each button on mobile */
+        width: 100%;
       }
     }
   </style>
@@ -621,7 +620,7 @@
           >
             <i class="fas fa-sign-out-alt"></i> Logout
           </button>
-          <!-- View My Appeals button will be injected here -->
+          <!-- View My Appeals button will be inserted here -->
         </div>
       </div>
     </div>
@@ -866,15 +865,37 @@
     }
 
     /********************************************************
-     * SUBMIT APPEAL
+     * SUBMIT APPEAL (with word-count checks)
      ********************************************************/
+    function countWords(text) {
+      // Splits on whitespace, filters out empty strings
+      return text.trim().split(/\s+/).filter(Boolean).length;
+    }
+
     async function onSubmitAppeal(e) {
       e.preventDefault();
+
       const punishmentType = e.target.punishmentType.value;
       const punishmentReason = e.target.punishmentReason.value.trim();
       const appealReason = e.target.appealReason.value.trim();
       const additionalInfo = e.target.additionalInfo.value.trim();
 
+      // 1) Word-count checks:
+      const reasonCount = countWords(punishmentReason);
+      if (reasonCount < 5) {
+        showToast("error", "Input Too Short",
+          "Please include at least 5 words in the 'Reason for the punishment'.");
+        return;
+      }
+
+      const appealCount = countWords(appealReason);
+      if (appealCount < 12) {
+        showToast("error", "Input Too Short",
+          "Please include at least 12 words in 'Why should it be revoked?'.");
+        return;
+      }
+
+      // 2) Make the request
       try {
         const res = await fetch("/api/submit-appeal", {
           method: "POST",
@@ -894,8 +915,8 @@
 
         showToast("success", "Appeal Submitted", "We will review your case soon.");
 
-        // Now show "Pending" status in place of the form
-        toggleMyAppeals(true); // true = force fetch & show "My Appeals"
+        // Show "My Appeals" automatically after submission
+        toggleMyAppeals(true); // force fetch & show "My Appeals"
       } catch (err) {
         console.error(err);
         showToast("error", "Error", err.message);
@@ -978,20 +999,21 @@
      ********************************************************/
     let myAppealsCard;
     let viewMyAppealsBtn;
-    let formContainerBackup = null; // to store a reference for toggling back
+    let backToFormBtn; 
+    let formContainerBackup = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Insert a new button inside the User Info card (if not already there)
-      const userInfoCardBody = document.querySelector('#user-info-card .card-body .user-actions');
-      if (userInfoCardBody) {
+      // Insert the "View My Appeals" button in the user info card
+      const userActionsDiv = document.querySelector('#user-info-card .card-body .user-actions');
+      if (userActionsDiv) {
         viewMyAppealsBtn = document.createElement('button');
         viewMyAppealsBtn.textContent = 'View My Appeals';
         viewMyAppealsBtn.className = 'btn btn-primary';
-        viewMyAppealsBtn.addEventListener('click', toggleMyAppeals);
-        userInfoCardBody.appendChild(viewMyAppealsBtn);
+        viewMyAppealsBtn.addEventListener('click', () => toggleMyAppeals());
+        userActionsDiv.appendChild(viewMyAppealsBtn);
       }
 
-      // Backup the Appeal Form Card so we can toggle back
+      // Backup the Appeal Form Card so we can toggle back if needed
       formContainerBackup = document.getElementById('appeal-form-card').cloneNode(true);
 
       // Create a new card for My Appeals (initially hidden)
@@ -1008,10 +1030,20 @@
         <div class="card-body" id="my-appeals-body">
           <p>Loading your appeals...</p>
         </div>
+        <!-- "Back to Form" button -->
+        <div style="padding: 0 1rem 1rem;">
+          <button id="back-to-form-btn" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Back to Appeal Form
+          </button>
+        </div>
       `;
-      // Insert this card in place of the Appeal Form Card
+      // Insert this card before the Appeal Form Card
       const parentContainer = document.querySelector('.container');
       parentContainer.insertBefore(myAppealsCard, appealFormCard);
+
+      // Add event listener to the "Back to Appeal Form" button
+      backToFormBtn = myAppealsCard.querySelector("#back-to-form-btn");
+      backToFormBtn.addEventListener("click", () => toggleMyAppeals(false));
     });
 
     // Toggle function to switch between the Appeal Form and My Appeals list
@@ -1023,7 +1055,7 @@
         myAppealsCard.classList.remove('hidden');
         fetchMyAppeals();
       } else {
-        // Hide My Appeals and show the form (restore backup)
+        // Hide My Appeals and show the form
         myAppealsCard.classList.add('hidden');
         appealFormEl.classList.remove('hidden');
       }
@@ -1056,7 +1088,11 @@
               Mute/Ban: ${ap.muteOrBan} <br/>
               Reason: ${ap.punishmentReason}<br/>
               Submitted At: ${new Date(ap.timestamp).toLocaleString()}<br/>
-              ${ap.responseTimestamp ? `Responded At: ${new Date(ap.responseTimestamp).toLocaleString()}<br/>` : ''}
+              ${
+                ap.responseTimestamp
+                ? `Responded At: ${new Date(ap.responseTimestamp).toLocaleString()}<br/>`
+                : ''
+              }
             </li>
           `;
         });
