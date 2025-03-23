@@ -1,6 +1,5 @@
 /*********************************************************
- * server.js - Add /api/my-appeals route
- *   so the user can see their appeals in the new card
+ * server.js
  *********************************************************/
 require('dotenv').config();
 const path = require('path');
@@ -106,7 +105,15 @@ app.post('/api/submit-appeal', async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ message: 'You must be logged in.' });
     }
-    const { punishmentType, punishmentReason, appealReason, additionalInfo } = req.body;
+
+    const {
+      punishmentType,
+      punishmentReason,
+      appealReason,
+      additionalInfo,
+      screenshotLinks  // <-- new array of image URLs from front-end
+    } = req.body;
+
     if (!punishmentType || !punishmentReason || !appealReason) {
       return res.status(400).json({ message: 'Missing required fields.' });
     }
@@ -157,16 +164,12 @@ app.post('/api/submit-appeal', async (req, res) => {
     });
     await doc.save();
 
-    // Old-style embed -> indefinite usage
+    // Old-style embed
     const channel = client.channels.cache.get(process.env.APPEAL_CHANNEL_ID);
     if (!channel) {
       return res.status(500).json({ message: 'Appeal channel not found.' });
     }
 
-    // You could mention staff roles here
-    const pendingMessage = '';
-
-    // Build embed
     const userAvatarUrl = `https://cdn.discordapp.com/avatars/${req.user.id}/${req.user.avatar}.png?size=128`;
     const embed = new EmbedBuilder()
       .setTitle('New Appeal Submitted')
@@ -198,6 +201,17 @@ app.post('/api/submit-appeal', async (req, res) => {
       )
       .setTimestamp();
 
+    // If user uploaded screenshot links, add them to the embed
+    if (Array.isArray(screenshotLinks) && screenshotLinks.length > 0) {
+      screenshotLinks.forEach((url, index) => {
+        embed.addFields({
+          name: `Screenshot #${index + 1}`,
+          value: `[View Screenshot](${url})`,
+          inline: false
+        });
+      });
+    }
+
     // Buttons
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -215,7 +229,6 @@ app.post('/api/submit-appeal', async (req, res) => {
     );
 
     const appealMsg = await channel.send({
-      content: pendingMessage,
       embeds: [embed],
       components: [row]
     });
@@ -240,7 +253,7 @@ app.post('/api/submit-appeal', async (req, res) => {
   }
 });
 
-// 8) Serve static front-end
+// 8) Serve static front-end (the same folder or adjust if needed)
 app.use(express.static(__dirname));
 
 // 9) Start Express
@@ -257,7 +270,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
 
   try {
-    await interaction.deferUpdate(); // indefinite
+    await interaction.deferUpdate();
   } catch (err) {
     console.warn('Interaction invalid or expired:', err.message);
     return;
@@ -278,7 +291,7 @@ client.on('interactionCreate', async (interaction) => {
     appealDoc.responseTimestamp = new Date();
     await appealDoc.save();
 
-    // DM user
+    // DM user if possible
     try {
       const user = await client.users.fetch(appealDoc.userId);
       await user.send(`Hello! Your appeal (#${appealId}) has been **${newStatus}**.`);
@@ -286,7 +299,6 @@ client.on('interactionCreate', async (interaction) => {
       console.warn('Failed to DM user:', dmErr.message);
     }
 
-    // old style final embed fields
     const oldMsg = await interaction.channel.messages.fetch(interaction.message.id);
     if (!oldMsg) return;
     const oldEmbed = oldMsg.embeds[0];
@@ -321,7 +333,6 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
 
-      // Build embed
       const embed = new EmbedBuilder()
         .setTitle(`Previous Violations for <@${userId}>`)
         .setColor(0x5865F2)
@@ -358,5 +369,5 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-// 12) Finally, login the bot
+// 12) Bot login
 client.login(process.env.DISCORD_BOT_TOKEN);
