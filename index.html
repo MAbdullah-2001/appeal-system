@@ -268,10 +268,6 @@
     .btn-block {
       width: 100%;
     }
-    .btn-danger {
-      background-color: var(--danger) !important;
-      color: #fff !important;
-    }
 
     /*****************************************************************
      * USER PROFILE
@@ -560,14 +556,12 @@
       }
     }
 
-    /* Custom styling for the 2 separate images. */
+    /* Minimal styling for the 2 separate image inputs + remove buttons */
     .image-upload-group {
       display: flex;
-      align-items: center;
       gap: 0.5rem;
-    }
-    .image-upload-group input[type=file] {
-      flex: 1;
+      margin-bottom: 0.75rem;
+      align-items: center;
     }
   </style>
 </head>
@@ -692,21 +686,26 @@
             ></textarea>
           </div>
 
-          <!-- ADDED: Two separate image uploads, each with "Remove" -->
+          <!-- ============== ADDED: 2 separate image file inputs ============== -->
           <div class="form-group">
             <label>Screenshot #1 (≤ 5MB)</label>
             <div class="image-upload-group">
-              <input type="file" id="screenshot1" accept="image/*">
-              <button type="button" class="btn btn-danger" id="removeScreenshot1">Remove</button>
+              <input type="file" id="screenshot1" accept="image/*"/>
+              <button type="button" class="btn btn-primary" id="removeScreenshot1" style="background: var(--danger);">
+                Remove
+              </button>
             </div>
           </div>
           <div class="form-group">
             <label>Screenshot #2 (≤ 5MB)</label>
             <div class="image-upload-group">
-              <input type="file" id="screenshot2" accept="image/*">
-              <button type="button" class="btn btn-danger" id="removeScreenshot2">Remove</button>
+              <input type="file" id="screenshot2" accept="image/*"/>
+              <button type="button" class="btn btn-primary" id="removeScreenshot2" style="background: var(--danger);">
+                Remove
+              </button>
             </div>
           </div>
+          <!-- ============== /ADDED ============== -->
 
           <div class="form-group">
             <div class="checkbox-group">
@@ -767,9 +766,9 @@
     const userAvatar = document.getElementById("user-avatar");
     const userName = document.getElementById("user-name");
     const userTag = document.getElementById("user-tag");
-
-    // Appeal Form
     const appealForm = document.getElementById("appeal-form");
+
+    /* ADDED: references for screenshot inputs + remove buttons */
     const screenshot1Input = document.getElementById("screenshot1");
     const screenshot2Input = document.getElementById("screenshot2");
     const removeScreenshot1Btn = document.getElementById("removeScreenshot1");
@@ -845,7 +844,7 @@
      * DISCORD LOGIN
      ********************************************************/
     function onDiscordLogin() {
-      // Use your original callback link
+      // EXACT link from your code
       window.location.href = "https://appeal-system.onrender.com/auth/discord";
     }
 
@@ -901,12 +900,12 @@
     }
 
     /********************************************************
-     * HELPER: Upload single file to vdoerig.com
+     * HELPER to upload single image to vdoerig.com
      ********************************************************/
     async function uploadToVdoerig(file) {
-      // Check size ≤ 5MB
+      // Must be ≤ 5MB
       if (file.size > 5 * 1024 * 1024) {
-        throw new Error(`File "${file.name}" exceeds 5MB limit.`);
+        throw new Error(`File "${file.name}" is bigger than 5MB.`);
       }
       const formData = new FormData();
       formData.append("image", file);
@@ -916,17 +915,17 @@
         body: formData,
       });
       const html = await res.text();
+      // Attempt to parse link
       const match = html.match(/<a href="(https:\/\/img\.vdoerig\.com\/.*?)"/);
       if (!match) {
-        throw new Error(`Failed to parse link for "${file.name}".`);
+        throw new Error(`Failed to parse upload link for "${file.name}".`);
       }
       return match[1];
     }
 
     /********************************************************
-     * SUBMIT APPEAL
+     * SUBMIT APPEAL (with word-count checks + 2 images)
      ********************************************************/
-    // Word count helper
     function countWords(text) {
       return text.trim().split(/\s+/).filter(Boolean).length;
     }
@@ -953,7 +952,7 @@
         return;
       }
 
-      // Collect the 2 images (if any)
+      // Collect up to 2 screenshots from the new inputs
       const screenshotLinks = [];
       try {
         if (screenshot1Input.files[0]) {
@@ -969,35 +968,36 @@
         return;
       }
 
-      // Now POST to your server
+      // Submit appeal
       try {
         const res = await fetch("/api/submit-appeal", {
           method: "POST",
-          credentials: "include",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             punishmentType,
             punishmentReason,
             appealReason,
             additionalInfo,
-            screenshotLinks
-          })
+            screenshotLinks // array of final image URLs
+          }),
         });
         const data = await res.json();
         if (!res.ok) {
-          throw new Error(data.message || "Submission failed.");
+          throw new Error(data.message || "Submission failed");
         }
         showToast("success", "Appeal Submitted", "We will review your case soon.");
 
-        // Show "My Appeals"
+        // Show My Appeals
         toggleMyAppeals(true);
       } catch (err) {
-        showToast("error", "Submission Error", err.message);
+        console.error(err);
+        showToast("error", "Error", err.message);
       }
     }
 
     /********************************************************
-     * "REMOVE" BUTTONS
+     * "Remove" Buttons for screenshots
      ********************************************************/
     removeScreenshot1Btn.addEventListener("click", () => {
       screenshot1Input.value = "";
@@ -1007,13 +1007,74 @@
     });
 
     /********************************************************
-     * SHOW APPEAL STATUS (unused unless you do /api/appeal-status)
+     * SHOW APPEAL STATUS
      ********************************************************/
     function showAppealStatus(appeal) {
       // Hide the form
       appealFormCard.classList.add("hidden");
       appealStatusCard.classList.remove("hidden");
-      // etc...
+
+      let statusMsg = "";
+      if (appeal.status === "Pending") {
+        statusMsg = `
+          <div class="status-card status-warning">
+            <i class="fas fa-hourglass-half"></i>
+            <div class="status-card-content">
+              <div class="status-card-title">Pending Review</div>
+              <div class="status-card-text">
+                Your appeal was submitted on
+                <strong>${new Date(appeal.dateCreated).toLocaleString()}</strong>.
+                Our team typically responds within a few days.
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (appeal.status === "Accepted") {
+        statusMsg = `
+          <div class="status-card status-success">
+            <i class="fas fa-check-circle"></i>
+            <div class="status-card-content">
+              <div class="status-card-title">Appeal Accepted</div>
+              <div class="status-card-text">
+                Good news! Your punishment has been lifted.
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (appeal.status === "Rejected") {
+        statusMsg = `
+          <div class="status-card status-danger">
+            <i class="fas fa-times-circle"></i>
+            <div class="status-card-content">
+              <div class="status-card-title">Appeal Rejected</div>
+              <div class="status-card-text">
+                Unfortunately, your appeal was rejected.
+                You may re-appeal 7 days after the original submission date.
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      const timeline = `
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">
+                ${new Date(appeal.dateCreated).toLocaleDateString()}
+              </div>
+              <div class="timeline-title">
+                <i class="fas fa-user-clock"></i> Appeal Created
+              </div>
+              <div class="timeline-text">
+                Your appeal is currently <strong>${appeal.status}</strong>.
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      appealStatusBody.innerHTML = statusMsg + timeline;
     }
 
     /********************************************************
@@ -1025,7 +1086,7 @@
     let formContainerBackup = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Insert "View My Appeals" button in the user info card
+      // Insert the "View My Appeals" button in the user info card
       const userActionsDiv = document.querySelector('#user-info-card .card-body .user-actions');
       if (userActionsDiv) {
         viewMyAppealsBtn = document.createElement('button');
@@ -1066,13 +1127,9 @@
       // Add event listener to the "Back to Appeal Form" button
       backToFormBtn = myAppealsCard.querySelector("#back-to-form-btn");
       backToFormBtn.addEventListener("click", () => toggleMyAppeals(false));
-
-      // Initialize
-      createParticles();
-      checkAuthState();
     });
 
-    // Toggle function for "My Appeals" card
+    // Toggle function to switch between the Appeal Form and My Appeals list
     async function toggleMyAppeals(forceShow = false) {
       const appealFormEl = document.getElementById('appeal-form-card');
       if (myAppealsCard.classList.contains('hidden') || forceShow) {
@@ -1087,7 +1144,7 @@
       }
     }
 
-    // Fetch My Appeals
+    // Fetch My Appeals from the server
     async function fetchMyAppeals() {
       const bodyEl = document.getElementById('my-appeals-body');
       bodyEl.innerHTML = '<p>Loading your appeals...</p>';
@@ -1131,9 +1188,17 @@
     }
 
     /********************************************************
-     * EVENT LISTENER
+     * EVENT LISTENERS
      ********************************************************/
+    discordLoginBtn.addEventListener("click", onDiscordLogin);
+    logoutBtn.addEventListener("click", onLogout);
     appealForm.addEventListener("submit", onSubmitAppeal);
+
+    /********************************************************
+     * INIT
+     ********************************************************/
+    createParticles();
+    checkAuthState();
   </script>
 </body>
 </html>
