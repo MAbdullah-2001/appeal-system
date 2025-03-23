@@ -537,6 +537,25 @@
         opacity: 0;
       }
     }
+
+    /*****************************************************************
+     * ADDITIONAL RESPONSIVE FIX FOR MOBILE BUTTONS
+     *****************************************************************/
+    .user-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      /* By default, they’ll be side-by-side with spacing */
+    }
+    @media (max-width: 600px) {
+      .user-actions {
+        flex-direction: column;     /* Stack vertically on small screens */
+        align-items: stretch;
+      }
+      .user-actions .btn {
+        width: 100%;               /* Full width for each button on mobile */
+      }
+    }
   </style>
 </head>
 <body>
@@ -592,14 +611,18 @@
             <div class="user-tag" id="user-tag"></div>
           </div>
         </div>
-        <button
-          id="logout-btn"
-          class="btn btn-primary"
-          style="background-color: var(--danger);"
-        >
-          <i class="fas fa-sign-out-alt"></i> Logout
-        </button>
-        <!-- View My Appeals button will be injected here -->
+
+        <!-- Wrap both buttons in a flex container -->
+        <div class="user-actions">
+          <button
+            id="logout-btn"
+            class="btn btn-primary"
+            style="background-color: var(--danger);"
+          >
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+          <!-- View My Appeals button will be injected here -->
+        </div>
       </div>
     </div>
     <!-- ============ /USER INFO CARD ============ -->
@@ -959,12 +982,11 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       // Insert a new button inside the User Info card (if not already there)
-      const userInfoCardBody = document.querySelector('#user-info-card .card-body');
+      const userInfoCardBody = document.querySelector('#user-info-card .card-body .user-actions');
       if (userInfoCardBody) {
         viewMyAppealsBtn = document.createElement('button');
         viewMyAppealsBtn.textContent = 'View My Appeals';
         viewMyAppealsBtn.className = 'btn btn-primary';
-        viewMyAppealsBtn.style.marginLeft = '0.5rem'; // Add spacing from the Logout button
         viewMyAppealsBtn.addEventListener('click', toggleMyAppeals);
         userInfoCardBody.appendChild(viewMyAppealsBtn);
       }
