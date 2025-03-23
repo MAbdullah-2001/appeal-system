@@ -359,36 +359,38 @@
      *****************************************************************/
     .status-card {
       position: relative;
-      padding: 1rem;
-      border-radius: 6px;
+      padding: 1.5rem; /* Slightly larger for a more "futuristic" feel */
+      border-radius: 12px; /* Rounded corners for 2025 design */
       display: flex;
       align-items: center;
       gap: 1rem;
       margin-bottom: 1rem;
       overflow: hidden;
-      box-shadow: inset 0 0 4px rgba(255, 138, 0, 0.1);
+      /* A subtle neon-glow background and shadow: */
+      background: linear-gradient(135deg, rgba(255, 138, 0, 0.12), rgba(0, 0, 0, 0.6));
+      box-shadow:
+        0 0 10px rgba(255, 138, 0, 0.2),
+        0 0 20px rgba(255, 138, 0, 0.1) inset;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .status-card::before {
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(135deg, rgba(255, 138, 0, 0.07), transparent);
       pointer-events: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent);
     }
     .status-success {
-      background-color: rgba(255, 167, 51, 0.1);
       border-left: 4px solid var(--success);
     }
     .status-warning {
-      background-color: rgba(255, 214, 61, 0.1);
       border-left: 4px solid var(--warning);
     }
     .status-danger {
-      background-color: rgba(255, 78, 78, 0.1);
       border-left: 4px solid var(--danger);
     }
     .status-info {
-      background-color: rgba(255, 138, 0, 0.08);
       border-left: 4px solid var(--primary);
     }
     .status-card i {
@@ -428,6 +430,7 @@
       background-color: var(--primary);
       border: 3px solid var(--card-bg);
       border-radius: 50%;
+      box-shadow: 0 0 8px rgba(255, 138, 0, 0.5); /* Neon effect */
     }
     .timeline-content {
       background-color: rgba(255, 255, 255, 0.03);
@@ -542,7 +545,7 @@
 
   <header>
     <h1 class="logo">ARENA BREAKOUT</h1>
-    <p>Discord Ban &amp; Mute Appeal System &ndash; Orange Neon Edition</p>
+    <p>Discord Ban &amp; Mute Appeal System &ndash;</p>
   </header>
 
   <div class="container">
@@ -785,7 +788,7 @@
      ********************************************************/
     function onDiscordLogin() {
       // Redirect to your Node server's Discord OAuth
-      window.location.href = "https://appeal-system.onrender.com/auth/discord/callback";
+      window.location.href = "https://appeal-system.onrender.com/auth/discord";
     }
 
     /********************************************************
@@ -830,6 +833,12 @@
         userInfoCard.classList.add("hidden");
         appealFormCard.classList.add("hidden");
         appealStatusCard.classList.add("hidden");
+
+        // Hide the My Appeals card if it exists
+        const myAppealsCardEl = document.getElementById('my-appeals-card');
+        if (myAppealsCardEl) {
+          myAppealsCardEl.classList.add('hidden');
+        }
       }
     }
 
@@ -863,7 +872,7 @@
         showToast("success", "Appeal Submitted", "We will review your case soon.");
 
         // Now show "Pending" status in place of the form
-        toggleMyAppeals(true); // true = force show My Appeals (fetched)
+        toggleMyAppeals(true); // true = force fetch & show "My Appeals"
       } catch (err) {
         console.error(err);
         showToast("error", "Error", err.message);
@@ -943,7 +952,6 @@
 
     /********************************************************
      * EXTRA: "VIEW MY APPEALS" FUNCTIONALITY
-     * This will replace the Appeal Form with the "My Appeals" list.
      ********************************************************/
     let myAppealsCard;
     let viewMyAppealsBtn;
@@ -956,7 +964,7 @@
         viewMyAppealsBtn = document.createElement('button');
         viewMyAppealsBtn.textContent = 'View My Appeals';
         viewMyAppealsBtn.className = 'btn btn-primary';
-        viewMyAppealsBtn.style.marginLeft = '0.5rem';
+        viewMyAppealsBtn.style.marginLeft = '0.5rem'; // Add spacing from the Logout button
         viewMyAppealsBtn.addEventListener('click', toggleMyAppeals);
         userInfoCardBody.appendChild(viewMyAppealsBtn);
       }
