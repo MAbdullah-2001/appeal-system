@@ -1,5 +1,6 @@
 /*********************************************************
- * server.js
+ * server.js 
+ *  -- With two screenshot links logic appended to the embed
  *********************************************************/
 require('dotenv').config();
 const path = require('path');
@@ -50,7 +51,7 @@ app.use(passport.session());
 passport.use(new DiscordStrategy({
   clientID: process.env.DISCORD_CLIENT_ID,
   clientSecret: process.env.DISCORD_CLIENT_SECRET,
-  callbackURL: process.env.DISCORD_REDIRECT_URI,
+  callbackURL: process.env.DISCORD_REDIRECT_URI, // <--- original callback
   scope: ['identify']
 }, (accessToken, refreshToken, profile, done) => {
   return done(null, profile);
@@ -111,7 +112,7 @@ app.post('/api/submit-appeal', async (req, res) => {
       punishmentReason,
       appealReason,
       additionalInfo,
-      screenshotLinks  // <-- new array of image URLs from front-end
+      screenshotLinks = [] // array of image URLs from the front end
     } = req.body;
 
     if (!punishmentType || !punishmentReason || !appealReason) {
@@ -164,7 +165,7 @@ app.post('/api/submit-appeal', async (req, res) => {
     });
     await doc.save();
 
-    // Old-style embed
+    // Build embed
     const channel = client.channels.cache.get(process.env.APPEAL_CHANNEL_ID);
     if (!channel) {
       return res.status(500).json({ message: 'Appeal channel not found.' });
@@ -202,10 +203,10 @@ app.post('/api/submit-appeal', async (req, res) => {
       .setTimestamp();
 
     // If user uploaded screenshot links, add them to the embed
-    if (Array.isArray(screenshotLinks) && screenshotLinks.length > 0) {
-      screenshotLinks.forEach((url, index) => {
+    if (screenshotLinks.length > 0) {
+      screenshotLinks.forEach((url, i) => {
         embed.addFields({
-          name: `Screenshot #${index + 1}`,
+          name: `Screenshot #${i + 1}`,
           value: `[View Screenshot](${url})`,
           inline: false
         });
@@ -253,7 +254,7 @@ app.post('/api/submit-appeal', async (req, res) => {
   }
 });
 
-// 8) Serve static front-end (the same folder or adjust if needed)
+// 8) Serve static front-end from same directory
 app.use(express.static(__dirname));
 
 // 9) Start Express
@@ -291,7 +292,7 @@ client.on('interactionCreate', async (interaction) => {
     appealDoc.responseTimestamp = new Date();
     await appealDoc.save();
 
-    // DM user if possible
+    // DM user
     try {
       const user = await client.users.fetch(appealDoc.userId);
       await user.send(`Hello! Your appeal (#${appealId}) has been **${newStatus}**.`);
@@ -369,5 +370,5 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-// 12) Bot login
+// 12) Finally, login the bot
 client.login(process.env.DISCORD_BOT_TOKEN);
