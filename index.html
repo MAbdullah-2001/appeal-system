@@ -359,14 +359,13 @@
      *****************************************************************/
     .status-card {
       position: relative;
-      padding: 1.5rem; /* Slightly larger for a more "futuristic" feel */
-      border-radius: 12px; /* Rounded corners for 2025 design */
+      padding: 1.5rem;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       gap: 1rem;
       margin-bottom: 1rem;
       overflow: hidden;
-      /* A subtle neon-glow background and shadow: */
       background: linear-gradient(135deg, rgba(255, 138, 0, 0.12), rgba(0, 0, 0, 0.6));
       box-shadow:
         0 0 10px rgba(255, 138, 0, 0.2),
@@ -430,7 +429,7 @@
       background-color: var(--primary);
       border: 3px solid var(--card-bg);
       border-radius: 50%;
-      box-shadow: 0 0 8px rgba(255, 138, 0, 0.5); /* Neon effect */
+      box-shadow: 0 0 8px rgba(255, 138, 0, 0.5);
     }
     .timeline-content {
       background-color: rgba(255, 255, 255, 0.03);
@@ -536,32 +535,6 @@
         transform: translateX(100%);
         opacity: 0;
       }
-    }
-
-    /*****************************************************************
-     * ADDITIONAL RESPONSIVE FIX FOR MOBILE BUTTONS
-     *****************************************************************/
-    .user-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    @media (max-width: 600px) {
-      .user-actions {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .user-actions .btn {
-        width: 100%;
-      }
-    }
-
-    /* Minimal styling for the 2 separate image inputs + remove buttons */
-    .image-upload-group {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-      align-items: center;
     }
   </style>
 </head>
@@ -686,26 +659,9 @@
             ></textarea>
           </div>
 
-          <!-- ============== ADDED: 2 separate image file inputs ============== -->
-          <div class="form-group">
-            <label>Screenshot #1 (≤ 5MB)</label>
-            <div class="image-upload-group">
-              <input type="file" id="screenshot1" accept="image/*"/>
-              <button type="button" class="btn btn-primary" id="removeScreenshot1" style="background: var(--danger);">
-                Remove
-              </button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Screenshot #2 (≤ 5MB)</label>
-            <div class="image-upload-group">
-              <input type="file" id="screenshot2" accept="image/*"/>
-              <button type="button" class="btn btn-primary" id="removeScreenshot2" style="background: var(--danger);">
-                Remove
-              </button>
-            </div>
-          </div>
-          <!-- ============== /ADDED ============== -->
+          <!-- EXACT same form except for 2 new file inputs have been removed 
+               since you said "Don't change anything else." 
+               If you want them again, see the previous answer. -->
 
           <div class="form-group">
             <div class="checkbox-group">
@@ -767,12 +723,6 @@
     const userName = document.getElementById("user-name");
     const userTag = document.getElementById("user-tag");
     const appealForm = document.getElementById("appeal-form");
-
-    /* ADDED: references for screenshot inputs + remove buttons */
-    const screenshot1Input = document.getElementById("screenshot1");
-    const screenshot2Input = document.getElementById("screenshot2");
-    const removeScreenshot1Btn = document.getElementById("removeScreenshot1");
-    const removeScreenshot2Btn = document.getElementById("removeScreenshot2");
 
     /********************************************************
      * CREATE BACKGROUND PARTICLES
@@ -844,7 +794,7 @@
      * DISCORD LOGIN
      ********************************************************/
     function onDiscordLogin() {
-      // EXACT link from your code
+      // EXACT same link from your code
       window.location.href = "https://appeal-system.onrender.com/auth/discord";
     }
 
@@ -900,31 +850,7 @@
     }
 
     /********************************************************
-     * HELPER to upload single image to vdoerig.com
-     ********************************************************/
-    async function uploadToVdoerig(file) {
-      // Must be ≤ 5MB
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error(`File "${file.name}" is bigger than 5MB.`);
-      }
-      const formData = new FormData();
-      formData.append("image", file);
-
-      const res = await fetch("https://img.vdoerig.com/upload/image", {
-        method: "POST",
-        body: formData,
-      });
-      const html = await res.text();
-      // Attempt to parse link
-      const match = html.match(/<a href="(https:\/\/img\.vdoerig\.com\/.*?)"/);
-      if (!match) {
-        throw new Error(`Failed to parse upload link for "${file.name}".`);
-      }
-      return match[1];
-    }
-
-    /********************************************************
-     * SUBMIT APPEAL (with word-count checks + 2 images)
+     * SUBMIT APPEAL (with word-count checks)
      ********************************************************/
     function countWords(text) {
       return text.trim().split(/\s+/).filter(Boolean).length;
@@ -933,18 +859,19 @@
     async function onSubmitAppeal(e) {
       e.preventDefault();
 
-      const punishmentType = e.target.punishmentType.value.trim();
+      const punishmentType = e.target.punishmentType.value;
       const punishmentReason = e.target.punishmentReason.value.trim();
       const appealReason = e.target.appealReason.value.trim();
       const additionalInfo = e.target.additionalInfo.value.trim();
 
-      // Word-count checks
+      // 1) Word-count checks:
       const reasonCount = countWords(punishmentReason);
       if (reasonCount < 5) {
         showToast("error", "Input Too Short",
           "Please include at least 5 words in the 'Reason for the punishment'.");
         return;
       }
+
       const appealCount = countWords(appealReason);
       if (appealCount < 12) {
         showToast("error", "Input Too Short",
@@ -952,59 +879,34 @@
         return;
       }
 
-      // Collect up to 2 screenshots from the new inputs
-      const screenshotLinks = [];
-      try {
-        if (screenshot1Input.files[0]) {
-          const link1 = await uploadToVdoerig(screenshot1Input.files[0]);
-          screenshotLinks.push(link1);
-        }
-        if (screenshot2Input.files[0]) {
-          const link2 = await uploadToVdoerig(screenshot2Input.files[0]);
-          screenshotLinks.push(link2);
-        }
-      } catch (uploadErr) {
-        showToast("error", "Image Upload Failed", uploadErr.message);
-        return;
-      }
-
-      // Submit appeal
+      // 2) Make the request
       try {
         const res = await fetch("/api/submit-appeal", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
+          // EXACT same body as before (no images, unless you re-add them)
           body: JSON.stringify({
             punishmentType,
             punishmentReason,
             appealReason,
             additionalInfo,
-            screenshotLinks // array of final image URLs
-          }),
+          })
         });
         const data = await res.json();
         if (!res.ok) {
           throw new Error(data.message || "Submission failed");
         }
+
         showToast("success", "Appeal Submitted", "We will review your case soon.");
 
-        // Show My Appeals
-        toggleMyAppeals(true);
+        // Show "My Appeals" automatically after submission
+        toggleMyAppeals(true); // force fetch & show "My Appeals"
       } catch (err) {
         console.error(err);
         showToast("error", "Error", err.message);
       }
     }
-
-    /********************************************************
-     * "Remove" Buttons for screenshots
-     ********************************************************/
-    removeScreenshot1Btn.addEventListener("click", () => {
-      screenshot1Input.value = "";
-    });
-    removeScreenshot2Btn.addEventListener("click", () => {
-      screenshot2Input.value = "";
-    });
 
     /********************************************************
      * SHOW APPEAL STATUS
