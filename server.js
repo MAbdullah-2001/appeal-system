@@ -1,6 +1,5 @@
 /*********************************************************
- * server.js - EXACT code from your snippet
- *   with a tiny addition to handle screenshotLinks
+ * server.js - Add /api/my-appeals route + 2 images
  *********************************************************/
 require('dotenv').config();
 const path = require('path');
@@ -84,7 +83,7 @@ app.post('/api/logout', (req, res) => {
   req.logout(() => res.json({ message: 'Logged out' }));
 });
 
-// 6) GET /api/my-appeals - returns all appeals for this user
+// 6) GET /api/my-appeals
 app.get('/api/my-appeals', (req, res) => {
   if (!req.user) {
     return res.status(401).json({ message: 'Not logged in' });
@@ -111,8 +110,7 @@ app.post('/api/submit-appeal', async (req, res) => {
       punishmentReason,
       appealReason,
       additionalInfo,
-      // If you re-add the image logic, you'll see screenshotLinks
-      screenshotLinks 
+      screenshotLinks // array of 0-2 URLs from the frontend
     } = req.body;
 
     if (!punishmentType || !punishmentReason || !appealReason) {
@@ -165,6 +163,7 @@ app.post('/api/submit-appeal', async (req, res) => {
     });
     await doc.save();
 
+    // Build embed
     const channel = client.channels.cache.get(process.env.APPEAL_CHANNEL_ID);
     if (!channel) {
       return res.status(500).json({ message: 'Appeal channel not found.' });
@@ -201,12 +200,12 @@ app.post('/api/submit-appeal', async (req, res) => {
       )
       .setTimestamp();
 
-    // If screenshotLinks are present, add them to the embed
+    // If screenshotLinks exist, add them to embed
     if (Array.isArray(screenshotLinks)) {
-      screenshotLinks.forEach((url, idx) => {
+      screenshotLinks.forEach((link, index) => {
         embed.addFields({
-          name: `Screenshot #${idx + 1}`,
-          value: `[View Screenshot](${url})`,
+          name: `Screenshot #${index + 1}`,
+          value: `[View Screenshot](${link})`,
           inline: false
         });
       });
@@ -369,5 +368,5 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-// 12) Finally, login the bot
+// 12) Bot login
 client.login(process.env.DISCORD_BOT_TOKEN);
