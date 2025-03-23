@@ -678,6 +678,18 @@
             ></textarea>
           </div>
 
+          <!-- ADDED: Image upload input (max 2) -->
+          <div class="form-group">
+            <label for="screenshots">Upload Screenshots (max 2, ≤ 5MB each)</label>
+            <input
+              type="file"
+              id="screenshots"
+              name="screenshots"
+              multiple
+              accept="image/*"
+            />
+          </div>
+
           <div class="form-group">
             <div class="checkbox-group">
               <input
@@ -738,6 +750,7 @@
     const userName = document.getElementById("user-name");
     const userTag = document.getElementById("user-tag");
     const appealForm = document.getElementById("appeal-form");
+    const screenshotsInput = document.getElementById("screenshots");
 
     /********************************************************
      * CREATE BACKGROUND PARTICLES
@@ -810,7 +823,7 @@
      ********************************************************/
     function onDiscordLogin() {
       // Redirect to your Node server's Discord OAuth
-      window.location.href = "https://appeal-system.onrender.com/auth/discord";
+      window.location.href = "/auth/discord";
     }
 
     /********************************************************
@@ -865,7 +878,35 @@
     }
 
     /********************************************************
-     * SUBMIT APPEAL (with word-count checks)
+     * HELPER: Upload to vdoerig.com (returns image link)
+     ********************************************************/
+    async function uploadToVdoerig(file) {
+      // Make sure file <= 5MB
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error(`File "${file.name}" is larger than 5MB.`);
+      }
+
+      const formData = new FormData();
+      formData.append("image", file);
+
+      // POST to vdoerig
+      const res = await fetch("https://img.vdoerig.com/upload/image", {
+        method: "POST",
+        body: formData,
+      });
+      const html = await res.text();
+
+      // Attempt to parse out the link from HTML
+      // Typically it's: <a href="https://img.vdoerig.com/HASH.png" target="_blank" ...
+      const match = html.match(/<a href="(https:\/\/img\.vdoerig\.com\/.*?)"/);
+      if (!match || !match[1]) {
+        throw new Error(`Failed to parse upload link for "${file.name}".`);
+      }
+      return match[1];
+    }
+
+    /********************************************************
+     * SUBMIT APPEAL (with word-count checks + image upload)
      ********************************************************/
     function countWords(text) {
       // Splits on whitespace, filters out empty strings
@@ -879,6 +920,7 @@
       const punishmentReason = e.target.punishmentReason.value.trim();
       const appealReason = e.target.appealReason.value.trim();
       const additionalInfo = e.target.additionalInfo.value.trim();
+      const files = screenshotsInput.files;
 
       // 1) Word-count checks:
       const reasonCount = countWords(punishmentReason);
@@ -895,7 +937,24 @@
         return;
       }
 
-      // 2) Make the request
+      // 2) Upload up to 2 images to vdoerig.com
+      const screenshotLinks = [];
+      if (files.length > 2) {
+        showToast("error", "Too many files", "Only 2 screenshots allowed max.");
+        return;
+      }
+
+      try {
+        for (let i = 0; i < files.length; i++) {
+          const link = await uploadToVdoerig(files[i]);
+          screenshotLinks.push(link);
+        }
+      } catch (uploadErr) {
+        showToast("error", "Image Upload Failed", uploadErr.message);
+        return;
+      }
+
+      // 3) Make the request to your server
       try {
         const res = await fetch("/api/submit-appeal", {
           method: "POST",
@@ -906,6 +965,7 @@
             punishmentReason,
             appealReason,
             additionalInfo,
+            screenshotLinks // array of links
           })
         });
         const data = await res.json();
@@ -946,7 +1006,7 @@
             </div>
           </div>
         `;
-      } else if (appeal.status === "Accepted") {
+      } else if (appeal.status === "Approved" || appeal.status === "Accepted") {
         statusMsg = `
           <div class="status-card status-success">
             <i class="fas fa-check-circle"></i>
@@ -1044,6 +1104,10 @@
       // Add event listener to the "Back to Appeal Form" button
       backToFormBtn = myAppealsCard.querySelector("#back-to-form-btn");
       backToFormBtn.addEventListener("click", () => toggleMyAppeals(false));
+
+      // Finally, init
+      createParticles();
+      checkAuthState();
     });
 
     // Toggle function to switch between the Appeal Form and My Appeals list
@@ -1107,15 +1171,8 @@
     /********************************************************
      * EVENT LISTENERS
      ********************************************************/
-    discordLoginBtn.addEventListener("click", onDiscordLogin);
-    logoutBtn.addEventListener("click", onLogout);
+    // Submitting the form
     appealForm.addEventListener("submit", onSubmitAppeal);
-
-    /********************************************************
-     * INIT
-     ********************************************************/
-    createParticles();
-    checkAuthState();
   </script>
 </body>
 </html>
