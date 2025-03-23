@@ -268,6 +268,10 @@
     .btn-block {
       width: 100%;
     }
+    .btn-danger {
+      background-color: var(--danger) !important;
+      color: #fff !important;
+    }
 
     /*****************************************************************
      * USER PROFILE
@@ -659,9 +663,34 @@
             ></textarea>
           </div>
 
-          <!-- EXACT same form except for 2 new file inputs have been removed 
-               since you said "Don't change anything else." 
-               If you want them again, see the previous answer. -->
+          <!-- TWO SEPARATE IMAGE UPLOADS -->
+          <div class="form-group">
+            <label>Screenshot #1 (≤ 5MB)</label>
+            <div class="image-upload-group">
+              <input type="file" id="screenshot1" accept="image/*"/>
+              <button
+                type="button"
+                class="btn btn-danger"
+                id="removeScreenshot1"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Screenshot #2 (≤ 5MB)</label>
+            <div class="image-upload-group">
+              <input type="file" id="screenshot2" accept="image/*"/>
+              <button
+                type="button"
+                class="btn btn-danger"
+                id="removeScreenshot2"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+          <!-- /END IMAGES -->
 
           <div class="form-group">
             <div class="checkbox-group">
@@ -722,7 +751,12 @@
     const userAvatar = document.getElementById("user-avatar");
     const userName = document.getElementById("user-name");
     const userTag = document.getElementById("user-tag");
+
     const appealForm = document.getElementById("appeal-form");
+    const screenshot1Input = document.getElementById("screenshot1");
+    const screenshot2Input = document.getElementById("screenshot2");
+    const removeScreenshot1Btn = document.getElementById("removeScreenshot1");
+    const removeScreenshot2Btn = document.getElementById("removeScreenshot2");
 
     /********************************************************
      * CREATE BACKGROUND PARTICLES
@@ -794,7 +828,7 @@
      * DISCORD LOGIN
      ********************************************************/
     function onDiscordLogin() {
-      // EXACT same link from your code
+      // EXACT link from your code
       window.location.href = "https://appeal-system.onrender.com/auth/discord";
     }
 
@@ -824,14 +858,13 @@
         if (!res.ok) throw new Error("Not logged in");
         const user = await res.json();
 
-        // User is logged in
+        // Logged in
         loginCard.classList.add("hidden");
         userInfoCard.classList.remove("hidden");
         userAvatar.src = user.avatarUrl || "";
         userName.textContent = user.username;
         userTag.textContent = `#${user.discriminator} (ID: ${user.id})`;
 
-        // Show the form (by default)
         appealFormCard.classList.remove("hidden");
         appealStatusCard.classList.add("hidden");
       } catch (err) {
@@ -841,7 +874,6 @@
         appealFormCard.classList.add("hidden");
         appealStatusCard.classList.add("hidden");
 
-        // Hide the My Appeals card if it exists
         const myAppealsCardEl = document.getElementById('my-appeals-card');
         if (myAppealsCardEl) {
           myAppealsCardEl.classList.add('hidden');
@@ -850,7 +882,41 @@
     }
 
     /********************************************************
-     * SUBMIT APPEAL (with word-count checks)
+     * HELPER: Upload a single file to vdoerig
+     ********************************************************/
+    async function uploadToVdoerig(file) {
+      // 1) Check size ≤ 5MB
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error(`File "${file.name}" is bigger than 5MB limit.`);
+      }
+
+      // 2) Build form data
+      const formData = new FormData();
+      formData.append("image", file);
+
+      // 3) POST to vdoerig
+      const res = await fetch("https://img.vdoerig.com/upload/image", {
+        method: "POST",
+        body: formData,
+        // We can also add mode:'cors' if needed, but typically it's open
+      });
+
+      if (!res.ok) {
+        throw new Error(`vdoerig upload responded: ${res.status}`);
+      }
+
+      // 4) Parse HTML to find the direct link
+      const html = await res.text();
+      // Typically it's: <a href="https://img.vdoerig.com/XXXX.png" ...
+      const match = html.match(/<a href="(https:\/\/img\.vdoerig\.com\/.*?)"/);
+      if (!match) {
+        throw new Error(`Failed to parse link for "${file.name}".`);
+      }
+      return match[1];
+    }
+
+    /********************************************************
+     * SUBMIT APPEAL
      ********************************************************/
     function countWords(text) {
       return text.trim().split(/\s+/).filter(Boolean).length;
@@ -859,19 +925,18 @@
     async function onSubmitAppeal(e) {
       e.preventDefault();
 
-      const punishmentType = e.target.punishmentType.value;
+      const punishmentType = e.target.punishmentType.value.trim();
       const punishmentReason = e.target.punishmentReason.value.trim();
       const appealReason = e.target.appealReason.value.trim();
       const additionalInfo = e.target.additionalInfo.value.trim();
 
-      // 1) Word-count checks:
+      // Word-count checks
       const reasonCount = countWords(punishmentReason);
       if (reasonCount < 5) {
         showToast("error", "Input Too Short",
-          "Please include at least 5 words in the 'Reason for the punishment'.");
+          "Please include at least 5 words in 'Reason for the punishment'.");
         return;
       }
-
       const appealCount = countWords(appealReason);
       if (appealCount < 12) {
         showToast("error", "Input Too Short",
@@ -879,19 +944,35 @@
         return;
       }
 
-      // 2) Make the request
+      // Gather up to 2 screenshots
+      const screenshotLinks = [];
+      try {
+        if (screenshot1Input.files[0]) {
+          const link1 = await uploadToVdoerig(screenshot1Input.files[0]);
+          screenshotLinks.push(link1);
+        }
+        if (screenshot2Input.files[0]) {
+          const link2 = await uploadToVdoerig(screenshot2Input.files[0]);
+          screenshotLinks.push(link2);
+        }
+      } catch (err) {
+        showToast("error", "Image Upload Failed", err.message);
+        return;
+      }
+
+      // POST to /api/submit-appeal
       try {
         const res = await fetch("/api/submit-appeal", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          // EXACT same body as before (no images, unless you re-add them)
           body: JSON.stringify({
             punishmentType,
             punishmentReason,
             appealReason,
             additionalInfo,
-          })
+            screenshotLinks,
+          }),
         });
         const data = await res.json();
         if (!res.ok) {
@@ -899,9 +980,7 @@
         }
 
         showToast("success", "Appeal Submitted", "We will review your case soon.");
-
-        // Show "My Appeals" automatically after submission
-        toggleMyAppeals(true); // force fetch & show "My Appeals"
+        toggleMyAppeals(true);
       } catch (err) {
         console.error(err);
         showToast("error", "Error", err.message);
@@ -909,10 +988,19 @@
     }
 
     /********************************************************
+     * REMOVE BUTTONS
+     ********************************************************/
+    removeScreenshot1Btn.addEventListener("click", () => {
+      screenshot1Input.value = "";
+    });
+    removeScreenshot2Btn.addEventListener("click", () => {
+      screenshot2Input.value = "";
+    });
+
+    /********************************************************
      * SHOW APPEAL STATUS
      ********************************************************/
     function showAppealStatus(appeal) {
-      // Hide the form
       appealFormCard.classList.add("hidden");
       appealStatusCard.classList.remove("hidden");
 
@@ -980,15 +1068,15 @@
     }
 
     /********************************************************
-     * EXTRA: "VIEW MY APPEALS" FUNCTIONALITY
+     * EXTRA: "VIEW MY APPEALS"
      ********************************************************/
     let myAppealsCard;
     let viewMyAppealsBtn;
-    let backToFormBtn; 
+    let backToFormBtn;
     let formContainerBackup = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Insert the "View My Appeals" button in the user info card
+      // Insert "View My Appeals" button
       const userActionsDiv = document.querySelector('#user-info-card .card-body .user-actions');
       if (userActionsDiv) {
         viewMyAppealsBtn = document.createElement('button');
@@ -998,10 +1086,9 @@
         userActionsDiv.appendChild(viewMyAppealsBtn);
       }
 
-      // Backup the Appeal Form Card so we can toggle back if needed
       formContainerBackup = document.getElementById('appeal-form-card').cloneNode(true);
 
-      // Create a new card for My Appeals (initially hidden)
+      // Create the My Appeals card
       myAppealsCard = document.createElement('div');
       myAppealsCard.className = 'card hidden';
       myAppealsCard.id = 'my-appeals-card';
@@ -1015,38 +1102,35 @@
         <div class="card-body" id="my-appeals-body">
           <p>Loading your appeals...</p>
         </div>
-        <!-- "Back to Form" button -->
         <div style="padding: 0 1rem 1rem;">
           <button id="back-to-form-btn" class="btn btn-primary">
             <i class="fas fa-arrow-left"></i> Back to Appeal Form
           </button>
         </div>
       `;
-      // Insert this card before the Appeal Form Card
       const parentContainer = document.querySelector('.container');
       parentContainer.insertBefore(myAppealsCard, appealFormCard);
 
-      // Add event listener to the "Back to Appeal Form" button
       backToFormBtn = myAppealsCard.querySelector("#back-to-form-btn");
       backToFormBtn.addEventListener("click", () => toggleMyAppeals(false));
+
+      // Init
+      createParticles();
+      checkAuthState();
     });
 
-    // Toggle function to switch between the Appeal Form and My Appeals list
     async function toggleMyAppeals(forceShow = false) {
       const appealFormEl = document.getElementById('appeal-form-card');
       if (myAppealsCard.classList.contains('hidden') || forceShow) {
-        // Hide the form and show My Appeals
         appealFormEl.classList.add('hidden');
         myAppealsCard.classList.remove('hidden');
         fetchMyAppeals();
       } else {
-        // Hide My Appeals and show the form
         myAppealsCard.classList.add('hidden');
         appealFormEl.classList.remove('hidden');
       }
     }
 
-    // Fetch My Appeals from the server
     async function fetchMyAppeals() {
       const bodyEl = document.getElementById('my-appeals-body');
       bodyEl.innerHTML = '<p>Loading your appeals...</p>';
@@ -1075,8 +1159,8 @@
               Submitted At: ${new Date(ap.timestamp).toLocaleString()}<br/>
               ${
                 ap.responseTimestamp
-                ? `Responded At: ${new Date(ap.responseTimestamp).toLocaleString()}<br/>`
-                : ''
+                  ? `Responded At: ${new Date(ap.responseTimestamp).toLocaleString()}<br/>`
+                  : ''
               }
             </li>
           `;
@@ -1089,18 +1173,10 @@
       }
     }
 
-    /********************************************************
-     * EVENT LISTENERS
-     ********************************************************/
+    // Listeners
     discordLoginBtn.addEventListener("click", onDiscordLogin);
     logoutBtn.addEventListener("click", onLogout);
     appealForm.addEventListener("submit", onSubmitAppeal);
-
-    /********************************************************
-     * INIT
-     ********************************************************/
-    createParticles();
-    checkAuthState();
   </script>
 </body>
 </html>
