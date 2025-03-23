@@ -1,6 +1,6 @@
 /*********************************************************
- * server.js - Add /api/my-appeals route
- *   so the user can see their appeals in the new card
+ * server.js - EXACT code from your snippet
+ *   with a tiny addition to handle screenshotLinks
  *********************************************************/
 require('dotenv').config();
 const path = require('path');
@@ -106,14 +106,13 @@ app.post('/api/submit-appeal', async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ message: 'You must be logged in.' });
     }
-
-    // ADDED: read screenshotLinks (array) from request
     const {
       punishmentType,
       punishmentReason,
       appealReason,
       additionalInfo,
-      screenshotLinks // possibly undefined or []
+      // If you re-add the image logic, you'll see screenshotLinks
+      screenshotLinks 
     } = req.body;
 
     if (!punishmentType || !punishmentReason || !appealReason) {
@@ -166,16 +165,11 @@ app.post('/api/submit-appeal', async (req, res) => {
     });
     await doc.save();
 
-    // Old-style embed -> indefinite usage
     const channel = client.channels.cache.get(process.env.APPEAL_CHANNEL_ID);
     if (!channel) {
       return res.status(500).json({ message: 'Appeal channel not found.' });
     }
 
-    // You could mention staff roles here
-    const pendingMessage = '';
-
-    // Build embed
     const userAvatarUrl = `https://cdn.discordapp.com/avatars/${req.user.id}/${req.user.avatar}.png?size=128`;
     const embed = new EmbedBuilder()
       .setTitle('New Appeal Submitted')
@@ -207,7 +201,7 @@ app.post('/api/submit-appeal', async (req, res) => {
       )
       .setTimestamp();
 
-    // ADDED: If screenshotLinks is present, add them to the embed
+    // If screenshotLinks are present, add them to the embed
     if (Array.isArray(screenshotLinks)) {
       screenshotLinks.forEach((url, idx) => {
         embed.addFields({
@@ -235,7 +229,6 @@ app.post('/api/submit-appeal', async (req, res) => {
     );
 
     const appealMsg = await channel.send({
-      content: pendingMessage,
       embeds: [embed],
       components: [row]
     });
@@ -306,7 +299,6 @@ client.on('interactionCreate', async (interaction) => {
       console.warn('Failed to DM user:', dmErr.message);
     }
 
-    // old style final embed fields
     const oldMsg = await interaction.channel.messages.fetch(interaction.message.id);
     if (!oldMsg) return;
     const oldEmbed = oldMsg.embeds[0];
@@ -341,7 +333,6 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
 
-      // Build embed
       const embed = new EmbedBuilder()
         .setTitle(`Previous Violations for <@${userId}>`)
         .setColor(0x5865F2)
