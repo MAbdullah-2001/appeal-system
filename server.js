@@ -1,5 +1,6 @@
 /*********************************************************
- * server.js - Add /api/my-appeals route + 2 images
+ * server.js - Add /api/my-appeals route
+ *   plus reading screenshotLinks from request
  *********************************************************/
 require('dotenv').config();
 const path = require('path');
@@ -163,7 +164,6 @@ app.post('/api/submit-appeal', async (req, res) => {
     });
     await doc.save();
 
-    // Build embed
     const channel = client.channels.cache.get(process.env.APPEAL_CHANNEL_ID);
     if (!channel) {
       return res.status(500).json({ message: 'Appeal channel not found.' });
@@ -200,18 +200,17 @@ app.post('/api/submit-appeal', async (req, res) => {
       )
       .setTimestamp();
 
-    // If screenshotLinks exist, add them to embed
+    // If screenshotLinks exist, add them
     if (Array.isArray(screenshotLinks)) {
-      screenshotLinks.forEach((link, index) => {
+      screenshotLinks.forEach((link, i) => {
         embed.addFields({
-          name: `Screenshot #${index + 1}`,
+          name: `Screenshot #${i + 1}`,
           value: `[View Screenshot](${link})`,
           inline: false
         });
       });
     }
 
-    // Buttons
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`approve_${newId}`)
@@ -269,7 +268,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
 
   try {
-    await interaction.deferUpdate(); // indefinite
+    await interaction.deferUpdate();
   } catch (err) {
     console.warn('Interaction invalid or expired:', err.message);
     return;
